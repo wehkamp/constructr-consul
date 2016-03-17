@@ -1,13 +1,17 @@
-lazy val constructrConsul = project
-  .copy(id = "constructr-consul")
+lazy val construtrRoot = project
+  .copy(id = "constructr-root")
   .in(file("."))
-  .enablePlugins(AutomateHeaderPlugin, GitVersioning)
+  .enablePlugins(GitVersioning)
+  .aggregate(constructrCoordinationConsul)
 
-name := "constructr-consul"
+lazy val constructrCoordinationConsul = project
+  .copy(id = "constructr-coordination-consul")
+  .in(file("constructr-coordination-consul"))
+  .enablePlugins(AutomateHeaderPlugin)
 
-libraryDependencies ++= Vector(
-  Library.scalaCheck % "test"
-)
+name := "constructr-root"
 
-initialCommands := """|import com.tecsisa.constructr.consul._
-                      |""".stripMargin
+unmanagedSourceDirectories in Compile := Vector.empty
+unmanagedSourceDirectories in Test    := Vector.empty
+
+publishArtifact := false

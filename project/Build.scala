@@ -1,3 +1,4 @@
+import bintray.BintrayPlugin
 import com.typesafe.sbt.{ GitPlugin, SbtScalariform }
 import de.heikoseeberger.sbtheader.HeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
@@ -8,7 +9,7 @@ import scalariform.formatter.preferences.{ AlignSingleLineCaseStatements, Double
 
 object Build extends AutoPlugin {
 
-  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && SbtScalariform
+  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && SbtScalariform && BintrayPlugin
 
   override def trigger = allRequirements
 
@@ -16,6 +17,24 @@ object Build extends AutoPlugin {
     // Core settings
     organization := "com.tecsisa",
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
+    homepage := Some(url("https://github.com/Tecsisa/constructr-consul")),
+    pomIncludeRepository := (_ => false),
+    pomExtra := <scm>
+      <url>https://github.com/Tecsisa/constructr-consul</url>
+      <connection>scm:git:git@github.com:Tecsisa/constructr-consul</connection>
+    </scm>
+      <developers>
+        <developer>
+          <id>juanjovazquez</id>
+          <name>Juanjo Vazquez</name>
+          <url>http://www.tecsisa.com</url>
+        </developer>
+        <developer>
+          <id>gerson24</id>
+          <name>Gerson Pozo</name>
+          <url>http://www.tecsisa.com</url>
+        </developer>
+      </developers>,
     scalaVersion := Version.Scala,
     crossScalaVersions := Vector(scalaVersion.value),
     scalacOptions ++= Vector(
@@ -38,6 +57,9 @@ object Build extends AutoPlugin {
     GitPlugin.autoImport.git.useGitDescribe := true,
 
     // Header settings
-    HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016", "Juanjo Vazquez"))
+    HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.")),
+
+    // Bintray settings
+    BintrayPlugin.autoImport.bintrayPackage := "constructr-consul"
   )
 }
