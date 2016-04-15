@@ -26,7 +26,7 @@ import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, HttpEntity, ResponseEntity, RequestEntity, StatusCode, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{ Sink, Source }
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Base64
 import scala.concurrent.Future
@@ -54,11 +54,11 @@ final class ConsulCoordination(
 
   @volatile var stateSession: Option[SessionId] = None
 
-  private val v1Uri = {
-    val host = system.settings.config.getString("constructr.coordination.host")
-    val port = system.settings.config.getInt("constructr.coordination.port")
-    Uri(s"http://$host:$port/v1")
-  }
+  private val host = system.settings.config.getString("constructr.coordination.host")
+
+  private val port = system.settings.config.getInt("constructr.coordination.port")
+
+  private val v1Uri = Uri("/v1")
 
   private val kvUri = v1Uri.withPath(v1Uri.path / "kv")
 
@@ -205,7 +205,12 @@ final class ConsulCoordination(
     }
   }
 
-  private def send(request: HttpRequest) = Http(system).singleRequest(request)
+  private def send(request: HttpRequest) =
+    Source.single(request)
+      .log("constructr-coordination-consul-requests")
+      .via(Http(system).outgoingConnection(host, port))
+      .log("constructr-coordination-consul-responses")
+      .runWith(Sink.head)
 
   private def ignore(entity: ResponseEntity) = entity.dataBytes.runWith(Sink.ignore)
 }
