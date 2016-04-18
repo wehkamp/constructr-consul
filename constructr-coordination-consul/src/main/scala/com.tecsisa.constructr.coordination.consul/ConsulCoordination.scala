@@ -18,14 +18,15 @@ package com.tecsisa.constructr.coordination
 package consul
 
 import akka.Done
+import akka.actor.ActorSystem
+import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.{ Get, Put }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
 import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, HttpEntity, ResponseEntity, RequestEntity, StatusCode, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.Materializer
-import akka.stream.scaladsl.{ Sink, Source }
-import com.typesafe.config.Config
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Base64
 import scala.concurrent.Future
@@ -39,20 +40,25 @@ object ConsulCoordination {
 }
 
 final class ConsulCoordination(
-  prefix: String,
-  clusterName: String,
-  config: Config
-)(implicit connection: Coordination.Connection, mat: Materializer)
-    extends Coordination {
+    prefix: String,
+    clusterName: String,
+    system: ActorSystem
+) extends Coordination {
   import Coordination._
   import ConsulCoordination._
+  private implicit val mat = ActorMaterializer()(system)
+
   import mat.executionContext
 
   type SessionId = String
 
   @volatile var stateSession: Option[SessionId] = None
 
-  private val v1Uri = Uri("/v1")
+  private val v1Uri = {
+    val host = system.settings.config.getString("constructr.coordination.host")
+    val port = system.settings.config.getInt("constructr.coordination.port")
+    Uri(s"http://$host:$port/v1")
+  }
 
   private val kvUri = v1Uri.withPath(v1Uri.path / "kv")
 
@@ -199,7 +205,7 @@ final class ConsulCoordination(
     }
   }
 
-  private def send(request: HttpRequest) = Source.single(request).via(connection).runWith(Sink.head)
+  private def send(request: HttpRequest) = Http(system).singleRequest(request)
 
   private def ignore(entity: ResponseEntity) = entity.dataBytes.runWith(Sink.ignore)
 }
