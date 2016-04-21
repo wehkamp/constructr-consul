@@ -12,7 +12,7 @@ You will need to add the following dependency in your `build.sbt` in addition to
 resolvers += Resolver.bintrayRepo("tecsisa", "maven-bintray-repo")
 
 libraryDependencies ++= Vector(
-  "com.tecsisa" %% "constructr-coordination-consul" % "0.1.2",
+  "com.tecsisa" %% "constructr-coordination-consul" % "0.2.0",
   ...
 )
 ```
