@@ -30,7 +30,7 @@ class MultiNodeConsulConstructrSpecMultiJvmNode5 extends MultiNodeConsulConstruc
 object MultiNodeConsulConstructrSpec {
   def toNodes(s: String): Set[Address] = {
     import rapture.json._
-    import rapture.json.jsonBackends.spray._
+    import rapture.json.jsonBackends.circe._
     def jsonToNode(json: Json) = {
       implicitly[Coordination.NodeSerialization[Address]]
         .fromBytes(Base64.getUrlDecoder.decode(json.Key.as[String].stripPrefix("constructr/akka/MultiNodeConstructrSpec/nodes/")))
