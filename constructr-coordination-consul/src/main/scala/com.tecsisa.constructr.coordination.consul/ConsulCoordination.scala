@@ -72,7 +72,7 @@ final class ConsulCoordination(
     def unmarshalNodes(entity: ResponseEntity) = {
       def toNodes(s: String) = {
         import rapture.json._
-        import rapture.json.jsonBackends.spray._
+        import rapture.json.jsonBackends.circe._
         def jsonToNode(json: Json) = {
           val init = nodesUri.path.toString.stripPrefix(kvUri.path.toString)
           val key = json.Key.as[String].substring(init.length)
@@ -96,7 +96,7 @@ final class ConsulCoordination(
       def unmarshallLockHolder(entity: ResponseEntity) = {
         def toLockHolder(s: String) = {
           import rapture.json._
-          import rapture.json.jsonBackends.spray._
+          import rapture.json.jsonBackends.circe._
           def jsonToNode(json: Json) = {
             val value = json.Value.as[String]
             new String(Base64.getUrlDecoder.decode(value), UTF_8)
@@ -166,7 +166,7 @@ final class ConsulCoordination(
     def unmarshalSessionKey(entity: ResponseEntity) = {
       def toSession(s: String) = {
         import rapture.json._
-        import rapture.json.jsonBackends.spray._
+        import rapture.json.jsonBackends.circe._
         def jsonToNode(json: Json) = json.Session.as[String]
         Json.parse(s).as[Set[Json]].map(jsonToNode).head
       }
@@ -192,7 +192,7 @@ final class ConsulCoordination(
     def unmarshalSessionId(entity: ResponseEntity) = {
       def toSession(s: String) = {
         import rapture.json._
-        import rapture.json.jsonBackends.spray._
+        import rapture.json.jsonBackends.circe._
         Json.parse(s).ID.as[String]
       }
       Unmarshal(entity).to[String].map(toSession)
