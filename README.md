@@ -1,5 +1,7 @@
 # ConstructR-Consul #
 
+[![Join the chat at https://gitter.im/Tecsisa/constructr-consul](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Tecsisa/constructr-consul?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This library enables to use Consul as cluster coordinator in a ConstructR based node.  
 
 [ConstructR](https://github.com/hseeberger/constructr) aims at cluster bootstrapping (construction) by using a coordination service and provides etcd as the default one. By means of this library, you will be able to use [Consul](https://www.consul.io/) as coordination service instead.
