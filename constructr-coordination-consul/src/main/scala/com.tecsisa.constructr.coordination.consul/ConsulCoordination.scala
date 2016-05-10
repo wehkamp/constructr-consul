@@ -23,7 +23,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.{ Get, Put }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
-import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, HttpEntity, ResponseEntity, RequestEntity, StatusCode, Uri }
+import akka.http.scaladsl.model.{ HttpEntity, HttpRequest, HttpResponse, RequestEntity, ResponseEntity, StatusCode, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
@@ -31,6 +31,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Base64
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
+import scala.util.Try
 import de.heikoseeberger.constructr.coordination.Coordination
 
 object ConsulCoordination {
@@ -54,9 +55,13 @@ final class ConsulCoordination(
 
   @volatile var stateSession: Option[SessionId] = None
 
+  private val logger = system.log
+
   private val host = system.settings.config.getString("constructr.coordination.host")
 
   private val port = system.settings.config.getInt("constructr.coordination.port")
+
+  private val agentName = Try(system.settings.config.getString("constructr.consul.agent-name")).getOrElse("")
 
   private val v1Uri = Uri("/v1")
 
@@ -197,9 +202,16 @@ final class ConsulCoordination(
       }
       Unmarshal(entity).to[String].map(toSession)
     }
+    val sessionEntity = {
+      val base = s"""{"behavior": "delete", "ttl": "${toSeconds(ttl)}s""""
+      val data = if (agentName.isEmpty) {
+        logger.warning("If agent-name is not defined, this may cause problems (see Consul session internals)")
+        base + "}"
+      } else base + s""", "node": "${agentName}"}"""
+      HttpEntity(`application/json`, data)
+    }
     val createSessionUri = sessionUri.withPath(sessionUri.path / "create")
-    val body = HttpEntity(`application/json`, s"""{"behavior": "delete", "ttl": "${toSeconds(ttl)}s"}""")
-    send(Put(createSessionUri, body)).flatMap {
+    send(Put(createSessionUri, sessionEntity)).flatMap {
       case HttpResponse(OK, _, entity, _)    => unmarshalSessionId(entity)
       case HttpResponse(other, _, entity, _) => ignore(entity).map(_ => throw UnexpectedStatusCode(createSessionUri, other))
     }
