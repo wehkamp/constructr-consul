@@ -1,0 +1,45 @@
+version: "2"
+services:
+  consul1:
+    image: "consul:latest"
+    container_name: "consul1"
+    hostname: "consul1"
+    ports:
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:53"
+    command: "agent -server -bootstrap -client=0.0.0.0 -ui"
+  consul2:
+    image: "consul:latest"
+    container_name: "consul2"
+    hostname: "consul2"
+    expose:
+      - "8400"
+      - "8500"
+      - "8600"
+    command: "agent -join=consul1 -client=0.0.0.0"
+    depends_on:
+      - consul1
+  akka_node1:
+    image: "constructr-coordination-demo:1.0.0"
+    container_name: "akka_node1"
+    hostname: "akka_node1"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - consul1
+      - consul2
+  akka_node2:
+    image: "constructr-coordination-demo:1.0.0"
+    container_name: "akka_node2"
+    hostname: "akka_node2"
+    depends_on:
+      - consul1
+      - consul2
+  akka_node3:
+    image: "constructr-coordination-demo:1.0.0"
+    container_name: "akka_node3"
+    hostname: "akka_node3"
+    depends_on:
+      - consul1
+      - consul2
