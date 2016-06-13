@@ -35,7 +35,7 @@ Not configuring this property might lead to inconsistent state. This configurati
 ## Testing
 
 Requirements:
-  - consul needs to be running, e.g. via ` docker run -d -p 8501:8500 --name constructr-consul gliderlabs/consul-server:0.6 -server -bootstrap`
+  - consul needs to be running, e.g. via ` docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0`
 
 ## Demo
 
