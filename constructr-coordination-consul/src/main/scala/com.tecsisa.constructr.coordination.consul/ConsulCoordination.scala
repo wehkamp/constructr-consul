@@ -207,7 +207,7 @@ final class ConsulCoordination(
       val data = if (agentName.isEmpty) {
         logger.warning("If agent-name is not defined, this may cause problems (see Consul session internals)")
         base + "}"
-      } else base + s""", "node": "${agentName}"}"""
+      } else base + s""", "node": "$agentName"}"""
       HttpEntity(`application/json`, data)
     }
     val createSessionUri = sessionUri.withPath(sessionUri.path / "create")
