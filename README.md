@@ -39,7 +39,7 @@ Requirements:
 
 ## Demo
 
-We have built a working demo for you. [Try it out!](constructr-coordination-demo/README.md)
+We have built a working demo for you. [Try it out!](constructr-coordination-demo/)
 
 ## Contribution policy ##
 

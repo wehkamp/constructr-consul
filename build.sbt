@@ -20,6 +20,14 @@ lazy val constructrCoordinationDemo = project
   .in(file("constructr-coordination-demo"))
   .enablePlugins(AutomateHeaderPlugin, AshScriptPlugin)
   .dependsOn(constructrCoordinationConsul)
+  .settings(dockerSettings)
+
+lazy val dockerSettings: Seq[Setting[_]] = Seq(
+  maintainer in Docker := "Tecsisa",
+  dockerBaseImage := "frolvlad/alpine-oraclejdk8",
+  daemonUser in Docker := "root",
+  version in Docker := "latest"
+)
 
 name := "constructr-root"
 
