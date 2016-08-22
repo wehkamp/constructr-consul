@@ -21,7 +21,7 @@ services:
     depends_on:
       - consul1
   akka_node1:
-    image: "constructr-coordination-demo:1.0.0"
+    image: "constructr-coordination-demo:latest"
     container_name: "akka_node1"
     hostname: "akka_node1"
     ports:
@@ -30,14 +30,14 @@ services:
       - consul1
       - consul2
   akka_node2:
-    image: "constructr-coordination-demo:1.0.0"
+    image: "constructr-coordination-demo:latest"
     container_name: "akka_node2"
     hostname: "akka_node2"
     depends_on:
       - consul1
       - consul2
   akka_node3:
-    image: "constructr-coordination-demo:1.0.0"
+    image: "constructr-coordination-demo:latest"
     container_name: "akka_node3"
     hostname: "akka_node3"
     depends_on:
