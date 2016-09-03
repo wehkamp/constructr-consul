@@ -156,7 +156,11 @@ final class ConsulCoordination(
     val sessionId = stateSession.getOrElse(throw new IllegalStateException("It wasn't possible to get a valid Consul `sessionId` for refreshing"))
     val uri = sessionUri.withPath(sessionUri.path / "renew" / sessionId)
     send(Put(uri)).flatMap {
-      case HttpResponse(OK, _, entity, _)    => ignore(entity).map(_ => Done)
+      case HttpResponse(OK, _, entity, _) => ignore(entity).map(_ => Done)
+      case HttpResponse(NotFound, _, entity, _) => ignore(entity).flatMap { _ =>
+        logger.warning("Unable to refresh, session {} not found. Creating a new one", sessionId)
+        createIfNotExist(self, ttl)
+      }.map(_ => Done)
       case HttpResponse(other, _, entity, _) => ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
     }
   }
