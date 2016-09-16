@@ -137,7 +137,9 @@ final class ConsulCoordination(
     }
   }
 
-  override def addSelf[A: NodeSerialization](self: A, ttl: FiniteDuration) = {
+  override def addSelf[A: NodeSerialization](self: A, ttl: FiniteDuration) = createIfNotExist(self, ttl)
+
+  def createIfNotExist[A: NodeSerialization](self: A, ttl: FiniteDuration) = {
     val keyUri = nodesUri.withPath(nodesUri.path / Base64.getUrlEncoder.encodeToString(implicitly[NodeSerialization[A]].toBytes(self)))
     val addSelfWithPreviousSession = for {
       Some(sessionId) <- retrieveSessionForKey(keyUri)
