@@ -3,7 +3,7 @@ import sbt._
 object Version {
   final val Scala            = "2.11.8"
   final val ConstructrAkka   = "0.13.2"
-  final val raptureJsonCirce = "2.0.0-M5"
+  final val raptureJsonCirce = "2.0.0-M7"
   final val Akka             = "2.4.4"
   final val AkkaLog4j        = "1.1.3"
   final val ScalaTest        = "2.2.6"
