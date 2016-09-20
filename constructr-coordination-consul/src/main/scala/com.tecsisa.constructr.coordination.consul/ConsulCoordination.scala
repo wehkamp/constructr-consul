@@ -63,6 +63,8 @@ final class ConsulCoordination(
 
   private val agentName = Try(system.settings.config.getString("constructr.consul.agent-name")).getOrElse("")
 
+  private val https = Try(system.settings.config.getBoolean("constructr.consul.https")).getOrElse(false)
+
   private val v1Uri = Uri("/v1")
 
   private val kvUri = v1Uri.withPath(v1Uri.path / "kv")
@@ -72,6 +74,12 @@ final class ConsulCoordination(
   private val baseUri = kvUri.withPath(kvUri.path / "constructr" / prefix / clusterName)
 
   private val nodesUri = baseUri.withPath(baseUri.path / "nodes")
+
+  private val outgoingConnection = if (https) {
+    Http(system).outgoingConnectionHttps(host, port)
+  } else {
+    Http(system).outgoingConnection(host, port)
+  }
 
   override def getNodes[A: NodeSerialization]() = {
     def unmarshalNodes(entity: ResponseEntity) = {
@@ -226,7 +234,7 @@ final class ConsulCoordination(
   private def send(request: HttpRequest) =
     Source.single(request)
       .log("constructr-coordination-consul-requests")
-      .via(Http(system).outgoingConnection(host, port))
+      .via(outgoingConnection)
       .log("constructr-coordination-consul-responses")
       .runWith(Sink.head)
 
