@@ -41,18 +41,25 @@ object DemoApp {
     implicit val mat = ActorMaterializer()
 
     // Create an actor that handles cluster domain events
-    val cluster = system.actorOf(SimpleClusterListener.props, SimpleClusterListener.Name)
+    val cluster =
+      system.actorOf(SimpleClusterListener.props, SimpleClusterListener.Name)
     Http().bindAndHandle(route(cluster), hostname, httpPort)
   }
 
   private def route(cluster: ActorRef)(implicit ec: ExecutionContext) = {
     import Directives._
-    implicit val timeout = Timeout(Duration(conf.getDuration("demo.cluster-view-timeout").toMillis, MILLISECONDS))
+    implicit val timeout = Timeout(
+      Duration(
+        conf.getDuration("demo.cluster-view-timeout").toMillis,
+        MILLISECONDS
+      )
+    )
     path("member-nodes") { // List cluster nodes
       get {
-        onSuccess((cluster ? SimpleClusterListener.GetMemberNodes).mapTo[Set[Address]]) {
-          case addresses => complete(addresses.mkString("\n"))
-        }
+        onSuccess(
+          (cluster ? SimpleClusterListener.GetMemberNodes)
+          .mapTo[Set[Address]]
+        )(addresses => complete(addresses.mkString("\n")))
       }
     }
   }
