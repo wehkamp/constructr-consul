@@ -1,0 +1,15 @@
+sudo: required
+
+language: scala
+
+jdk:
+- oraclejdk8
+
+services:
+- docker
+
+before_install:
+- docker pull consul
+- docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0
+
+script: sbt -Dakka.test.timefactor=3.0 +test

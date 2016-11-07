@@ -1,5 +1,6 @@
 # ConstructR-Consul #
 
+[![Build Status](https://travis-ci.org/Tecsisa/constructr-consul.svg?branch=master)](https://travis-ci.org/Tecsisa/constructr-consul)
 [![Join the chat at https://gitter.im/Tecsisa/constructr-consul](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Tecsisa/constructr-consul?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This library enables to use Consul as cluster coordinator in a ConstructR based node.  
@@ -8,7 +9,7 @@ This library enables to use Consul as cluster coordinator in a ConstructR based 
 
 You will need to add the following dependency in your `build.sbt` in addition to the core ConstructR ones:
 
-```
+```scala
 // All releases including intermediate ones are published here,
 // final ones are also published to Maven Central.
 resolvers += Resolver.bintrayRepo("tecsisa", "maven-bintray-repo")
