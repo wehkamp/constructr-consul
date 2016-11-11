@@ -11,7 +11,12 @@ unmanagedSourceDirectories.in(MultiJvm) := Vector(scalaSource.in(MultiJvm).value
 
 test.in(Test) := { test.in(MultiJvm).value; test.in(Test).value }
 
-inConfig(MultiJvm)(SbtScalariform.configScalariformSettings)
-inConfig(MultiJvm)(compileInputs.in(compile) := { scalariformFormat.value; compileInputs.in(compile).value })
+inConfig(MultiJvm)(reformatOnCompileSettings)
+inConfig(MultiJvm) {
+  compileInputs.in(compile) := {
+    scalafmt.value
+    compileInputs.in(compile).value
+  }
+}
 
 publishArtifact := false

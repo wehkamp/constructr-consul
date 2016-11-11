@@ -42,7 +42,7 @@ You can use Consul UI for checking services, nodes, reading/writing key/value da
 #### HTTP API ####
 
 - Consul:
-    - Check nodes: `curl "http://localhost:8500/v1/kv/constructr/akka/ConstructR-Consul/nodes/?recurse&pretty"`
+    - Check nodes: `curl "http://localhost:8500/v1/kv/constructr/ConstructR-Consul/nodes/?recurse&pretty"`
 
       List node key/value pairs
 

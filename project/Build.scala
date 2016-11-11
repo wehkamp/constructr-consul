@@ -1,15 +1,16 @@
 import bintray.BintrayPlugin
-import com.typesafe.sbt.{ GitPlugin, SbtScalariform }
+import com.typesafe.sbt.GitPlugin
 import de.heikoseeberger.sbtheader.HeaderPlugin
 import de.heikoseeberger.sbtheader.license.Apache2_0
+import org.scalafmt.sbt.ScalaFmtPlugin
 import sbt._
 import sbt.plugins.JvmPlugin
+import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
 import sbt.Keys._
-import scalariform.formatter.preferences.{ AlignSingleLineCaseStatements, DoubleIndentClassDeclaration }
 
 object Build extends AutoPlugin {
 
-  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && SbtScalariform && BintrayPlugin
+  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && BintrayPlugin && ScalaFmtPlugin
 
   override def trigger = allRequirements
 
@@ -48,12 +49,6 @@ object Build extends AutoPlugin {
     unmanagedSourceDirectories.in(Compile) := Vector(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) := Vector(scalaSource.in(Test).value),
 
-    // Scalariform settings
-    SbtScalariform.autoImport.scalariformPreferences := SbtScalariform.autoImport.scalariformPreferences.value
-      .setPreference(AlignSingleLineCaseStatements, true)
-      .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 100)
-      .setPreference(DoubleIndentClassDeclaration, true),
-
     // Git settings
     GitPlugin.autoImport.git.useGitDescribe := true,
 
@@ -61,6 +56,10 @@ object Build extends AutoPlugin {
     HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.")),
 
     // Bintray settings
-    BintrayPlugin.autoImport.bintrayPackage := "constructr-consul"
+    BintrayPlugin.autoImport.bintrayPackage := "constructr-consul",
+
+    // scalafmt settings
+    formatSbtFiles := false,
+    scalafmtConfig := Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf")
   )
 }

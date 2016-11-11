@@ -17,36 +17,51 @@
 package com.tecsisa.constructr.coordination
 package consul
 
+import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Base64
+import java.util.Base64.{ getUrlDecoder, getUrlEncoder }
+
 import akka.Done
-import akka.actor.ActorSystem
+import akka.actor.{ ActorSystem, Address, AddressFromURIString }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.{ Get, Put }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
-import akka.http.scaladsl.model.{ HttpEntity, HttpRequest, HttpResponse, RequestEntity, ResponseEntity, StatusCode, Uri }
+import akka.http.scaladsl.model.{
+  HttpEntity,
+  HttpRequest,
+  HttpResponse,
+  RequestEntity,
+  ResponseEntity,
+  StatusCode,
+  Uri
+}
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Base64
+import de.heikoseeberger.constructr.coordination.Coordination
+
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.util.Try
-import de.heikoseeberger.constructr.coordination.Coordination
 
 object ConsulCoordination {
-  final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode) extends RuntimeException(s"Unexpected status code $statusCode for URI $uri")
+
+  final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode)
+    extends RuntimeException(
+      s"Unexpected status code $statusCode for URI $uri"
+    )
 
   private def toSeconds(duration: Duration) = (duration.toSeconds + 1).toString
 }
 
 final class ConsulCoordination(
-    prefix: String,
     clusterName: String,
     system: ActorSystem
 ) extends Coordination {
-  import Coordination._
+
   import ConsulCoordination._
+
   private implicit val mat = ActorMaterializer()(system)
 
   import mat.executionContext
@@ -57,13 +72,19 @@ final class ConsulCoordination(
 
   private val logger = system.log
 
-  private val host = system.settings.config.getString("constructr.coordination.host")
+  private val host =
+    system.settings.config.getString("constructr.coordination.host")
 
-  private val port = system.settings.config.getInt("constructr.coordination.port")
+  private val port =
+    system.settings.config.getInt("constructr.coordination.port")
 
-  private val agentName = Try(system.settings.config.getString("constructr.consul.agent-name")).getOrElse("")
+  private val agentName =
+    Try(system.settings.config.getString("constructr.consul.agent-name"))
+      .getOrElse("")
 
-  private val https = Try(system.settings.config.getBoolean("constructr.consul.https")).getOrElse(false)
+  private val https =
+    Try(system.settings.config.getBoolean("constructr.consul.https"))
+      .getOrElse(false)
 
   private val v1Uri = Uri("/v1")
 
@@ -71,7 +92,7 @@ final class ConsulCoordination(
 
   private val sessionUri = v1Uri.withPath(v1Uri.path / "session")
 
-  private val baseUri = kvUri.withPath(kvUri.path / "constructr" / prefix / clusterName)
+  private val baseUri = kvUri.withPath(kvUri.path / "constructr" / clusterName)
 
   private val nodesUri = baseUri.withPath(baseUri.path / "nodes")
 
@@ -81,15 +102,16 @@ final class ConsulCoordination(
     Http(system).outgoingConnection(host, port)
   }
 
-  override def getNodes[A: NodeSerialization]() = {
-    def unmarshalNodes(entity: ResponseEntity) = {
+  override def getNodes() = {
+    def unmarshalNodes(entity: ResponseEntity): Future[Set[Address]] = {
       def toNodes(s: String) = {
         import rapture.json._
         import rapture.json.jsonBackends.circe._
         def jsonToNode(json: Json) = {
           val init = nodesUri.path.toString.stripPrefix(kvUri.path.toString)
           val key = json.Key.as[String].substring(init.length)
-          implicitly[NodeSerialization[A]].fromBytes(Base64.getUrlDecoder.decode(key))
+          val uri = new String(getUrlDecoder.decode(key), UTF_8)
+          AddressFromURIString(uri)
         }
         Json.parse(s).as[Set[Json]].map(jsonToNode)
       }
@@ -97,13 +119,15 @@ final class ConsulCoordination(
     }
     val uri = nodesUri.withQuery(Uri.Query("recurse"))
     send(Get(uri)).flatMap {
-      case HttpResponse(OK, _, entity, _)       => unmarshalNodes(entity)
-      case HttpResponse(NotFound, _, entity, _) => ignore(entity).map(_ => Set.empty)
-      case HttpResponse(other, _, entity, _)    => ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
+      case HttpResponse(OK, _, entity, _) => unmarshalNodes(entity)
+      case HttpResponse(NotFound, _, entity, _) =>
+        ignore(entity).map(_ => Set.empty)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
     }
   }
 
-  override def lock[A: NodeSerialization](self: A, ttl: FiniteDuration) = {
+  override def lock(self: Address, ttl: FiniteDuration) = {
     val uriLock = baseUri.withPath(baseUri.path / "lock")
     def readLock() = {
       def unmarshallLockHolder(entity: ResponseEntity) = {
@@ -119,15 +143,22 @@ final class ConsulCoordination(
         Unmarshal(entity).to[String].map(toLockHolder)
       }
       send(Get(uriLock)).flatMap {
-        case HttpResponse(OK, _, entity, _)       => unmarshallLockHolder(entity).map(Some(_))
-        case HttpResponse(NotFound, _, entity, _) => ignore(entity).map(_ => None)
-        case HttpResponse(other, _, entity, _)    => ignore(entity).map(_ => throw UnexpectedStatusCode(nodesUri, other))
+        case HttpResponse(OK, _, entity, _) =>
+          unmarshallLockHolder(entity).map(Some(_))
+        case HttpResponse(NotFound, _, entity, _) =>
+          ignore(entity).map(_ => None)
+        case HttpResponse(other, _, entity, _) =>
+          ignore(entity).map(_ => throw UnexpectedStatusCode(nodesUri, other))
       }
     }
     def writeLock() = {
       val lockWithNewSession = for {
         sessionId <- createSession(ttl)
-        result <- putKeyWithSession(uriLock, sessionId, HttpEntity(self.toString))
+        result <- putKeyWithSession(
+          uriLock,
+          sessionId,
+          HttpEntity(self.toString)
+        )
       } yield result
       lockWithNewSession.map(isLocked => if (isLocked) true else false)
     }
@@ -145,10 +176,12 @@ final class ConsulCoordination(
     }
   }
 
-  override def addSelf[A: NodeSerialization](self: A, ttl: FiniteDuration) = createIfNotExist(self, ttl)
+  override def addSelf(self: Address, ttl: FiniteDuration) =
+    createIfNotExist(self, ttl)
 
-  def createIfNotExist[A: NodeSerialization](self: A, ttl: FiniteDuration) = {
-    val keyUri = nodesUri.withPath(nodesUri.path / Base64.getUrlEncoder.encodeToString(implicitly[NodeSerialization[A]].toBytes(self)))
+  def createIfNotExist(self: Address, ttl: FiniteDuration) = {
+    val node = getUrlEncoder.encodeToString(self.toString.getBytes(UTF_8))
+    val keyUri = nodesUri.withPath(nodesUri.path / node)
     val addSelfWithPreviousSession = for {
       Some(sessionId) <- retrieveSessionForKey(keyUri)
       result <- renewSession(sessionId) if result
@@ -157,27 +190,45 @@ final class ConsulCoordination(
       sessionId <- createSession(ttl)
       result <- putKeyWithSession(keyUri, sessionId) if result
     } yield sessionId // it will fail if it couldn't acquire the key with the new session
-    addSelfWithPreviousSession.fallbackTo(addSelftWithNewSession).map { res => stateSession = Some(res); Done }
-  }
-
-  override def refresh[A: NodeSerialization](self: A, ttl: FiniteDuration) = {
-    val sessionId = stateSession.getOrElse(throw new IllegalStateException("It wasn't possible to get a valid Consul `sessionId` for refreshing"))
-    val uri = sessionUri.withPath(sessionUri.path / "renew" / sessionId)
-    send(Put(uri)).flatMap {
-      case HttpResponse(OK, _, entity, _) => ignore(entity).map(_ => Done)
-      case HttpResponse(NotFound, _, entity, _) => ignore(entity).flatMap { _ =>
-        logger.warning("Unable to refresh, session {} not found. Creating a new one", sessionId)
-        createIfNotExist(self, ttl)
-      }.map(_ => Done)
-      case HttpResponse(other, _, entity, _) => ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
+    addSelfWithPreviousSession.fallbackTo(addSelftWithNewSession).map { res =>
+      stateSession = Some(res)
+      Done
     }
   }
 
-  private def putKeyWithSession(keyUri: Uri, sessionId: SessionId, content: RequestEntity = HttpEntity.Empty) = {
+  override def refresh(self: Address, ttl: FiniteDuration) = {
+    val sessionId = stateSession.getOrElse(
+      throw new IllegalStateException(
+        "It wasn't possible to get a valid Consul `sessionId` for refreshing"
+      )
+    )
+    val uri = sessionUri.withPath(sessionUri.path / "renew" / sessionId)
+    send(Put(uri)).flatMap {
+      case HttpResponse(OK, _, entity, _) => ignore(entity).map(_ => Done)
+      case HttpResponse(NotFound, _, entity, _) =>
+        ignore(entity).flatMap { _ =>
+          logger.warning(
+            "Unable to refresh, session {} not found. Creating a new one",
+            sessionId
+          )
+          createIfNotExist(self, ttl)
+        }.map(_ => Done)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
+    }
+  }
+
+  private def putKeyWithSession(
+    keyUri: Uri,
+    sessionId: SessionId,
+    content: RequestEntity = HttpEntity.Empty
+  ) = {
     val uri = keyUri.withQuery(Uri.Query("acquire" -> sessionId))
     send(Put(uri, content)).flatMap {
-      case HttpResponse(OK, _, entity, _)    => Unmarshal(entity).to[String].map(_.toBoolean)
-      case HttpResponse(other, _, entity, _) => ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
+      case HttpResponse(OK, _, entity, _) =>
+        Unmarshal(entity).to[String].map(_.toBoolean)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
     }
   }
 
@@ -192,18 +243,23 @@ final class ConsulCoordination(
       Unmarshal(entity).to[String].map(toSession)
     }
     send(Get(keyUri)).flatMap {
-      case HttpResponse(OK, _, entity, _)       => unmarshalSessionKey(entity).map(Some(_))
-      case HttpResponse(NotFound, _, entity, _) => ignore(entity).map(_ => None)
-      case HttpResponse(other, _, entity, _)    => ignore(entity).map(_ => throw UnexpectedStatusCode(keyUri, other))
+      case HttpResponse(OK, _, entity, _) =>
+        unmarshalSessionKey(entity).map(Some(_))
+      case HttpResponse(NotFound, _, entity, _) =>
+        ignore(entity).map(_ => None)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ => throw UnexpectedStatusCode(keyUri, other))
     }
   }
 
   private def renewSession(sessionId: SessionId) = {
     val uri = sessionUri.withPath(sessionUri.path / "renew" / sessionId)
     send(Put(uri)).flatMap {
-      case HttpResponse(OK, _, entity, _)       => ignore(entity).map(_ => true)
-      case HttpResponse(NotFound, _, entity, _) => ignore(entity).map(_ => false)
-      case HttpResponse(other, _, entity, _)    => ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
+      case HttpResponse(OK, _, entity, _) => ignore(entity).map(_ => true)
+      case HttpResponse(NotFound, _, entity, _) =>
+        ignore(entity).map(_ => false)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
     }
   }
 
@@ -219,24 +275,30 @@ final class ConsulCoordination(
     val sessionEntity = {
       val base = s"""{"behavior": "delete", "ttl": "${toSeconds(ttl)}s""""
       val data = if (agentName.isEmpty) {
-        logger.warning("If agent-name is not defined, this may cause problems (see Consul session internals)")
+        logger.warning(
+          "If agent-name is not defined, this may cause problems (see Consul session internals)"
+        )
         base + "}"
       } else base + s""", "node": "$agentName"}"""
       HttpEntity(`application/json`, data)
     }
     val createSessionUri = sessionUri.withPath(sessionUri.path / "create")
     send(Put(createSessionUri, sessionEntity)).flatMap {
-      case HttpResponse(OK, _, entity, _)    => unmarshalSessionId(entity)
-      case HttpResponse(other, _, entity, _) => ignore(entity).map(_ => throw UnexpectedStatusCode(createSessionUri, other))
+      case HttpResponse(OK, _, entity, _) => unmarshalSessionId(entity)
+      case HttpResponse(other, _, entity, _) =>
+        ignore(entity).map(_ =>
+          throw UnexpectedStatusCode(createSessionUri, other))
     }
   }
 
   private def send(request: HttpRequest) =
-    Source.single(request)
+    Source
+      .single(request)
       .log("constructr-coordination-consul-requests")
       .via(outgoingConnection)
       .log("constructr-coordination-consul-responses")
       .runWith(Sink.head)
 
-  private def ignore(entity: ResponseEntity) = entity.dataBytes.runWith(Sink.ignore)
+  private def ignore(entity: ResponseEntity) =
+    entity.dataBytes.runWith(Sink.ignore)
 }

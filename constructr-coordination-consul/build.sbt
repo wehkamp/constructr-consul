@@ -1,6 +1,7 @@
 name := "constructr-coordination-consul"
 
 libraryDependencies ++= Vector(
+  Library.akkaHttp,
   Library.constructrAkka,
   Library.raptureJsonCirce
 )

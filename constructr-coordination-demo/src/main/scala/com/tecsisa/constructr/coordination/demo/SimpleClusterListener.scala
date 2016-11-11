@@ -18,7 +18,13 @@ package com.tecsisa.constructr.coordination
 package demo
 
 import akka.actor.{ Actor, ActorLogging, Address, Props }
-import akka.cluster.ClusterEvent.{ MemberEvent, MemberJoined, MemberUp, MemberRemoved, UnreachableMember }
+import akka.cluster.ClusterEvent.{
+  MemberEvent,
+  MemberJoined,
+  MemberUp,
+  MemberRemoved,
+  UnreachableMember
+}
 import akka.cluster.Cluster
 
 object SimpleClusterListener {
@@ -37,7 +43,8 @@ class SimpleClusterListener extends Actor with ActorLogging {
 
   private var members = Set.empty[Address]
 
-  override def preStart(): Unit = cluster.subscribe(self, classOf[MemberEvent], classOf[UnreachableMember])
+  override def preStart(): Unit =
+    cluster.subscribe(self, classOf[MemberEvent], classOf[UnreachableMember])
 
   override def postStop(): Unit = cluster.unsubscribe(self)
 

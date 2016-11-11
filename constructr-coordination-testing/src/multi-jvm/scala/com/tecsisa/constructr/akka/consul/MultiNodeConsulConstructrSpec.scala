@@ -16,32 +16,39 @@
 
 package com.tecsisa.constructr.akka.consul
 
-import akka.actor.Address
-import de.heikoseeberger.constructr.akka.AkkaAddressNodeSerialization
-import de.heikoseeberger.constructr.coordination.Coordination
-import java.util.Base64
+import java.util.Base64._
 
-class MultiNodeConsulConstructrSpecMultiJvmNode1 extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode2 extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode3 extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode4 extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode5 extends MultiNodeConsulConstructrSpec
+import akka.actor.{ Address, AddressFromURIString }
+
+class MultiNodeConsulConstructrSpecMultiJvmNode1
+  extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode2
+  extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode3
+  extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode4
+  extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode5
+  extends MultiNodeConsulConstructrSpec
 
 object MultiNodeConsulConstructrSpec {
   def toNodes(s: String): Set[Address] = {
     import rapture.json._
     import rapture.json.jsonBackends.circe._
     def jsonToNode(json: Json) = {
-      implicitly[Coordination.NodeSerialization[Address]]
-        .fromBytes(Base64.getUrlDecoder.decode(json.Key.as[String].stripPrefix("constructr/akka/MultiNodeConstructrSpec/nodes/")))
+      val a = json.Key
+        .as[String]
+        .stripPrefix("constructr/MultiNodeConstructrSpec/nodes/")
+      AddressFromURIString(new String(getUrlDecoder.decode(a), "UTF-8"))
     }
     Json.parse(s).as[Set[Json]].map(jsonToNode)
   }
 }
 
-abstract class MultiNodeConsulConstructrSpec extends MultiNodeConstructrSpec(
-  8501,
-  "/v1/kv/constructr/akka?recurse",
-  "/v1/kv/constructr/akka/MultiNodeConstructrSpec/nodes?recurse",
-  MultiNodeConsulConstructrSpec.toNodes
-)
+abstract class MultiNodeConsulConstructrSpec
+  extends MultiNodeConstructrSpec(
+    8501,
+    "/v1/kv/constructr/MultiNodeConstructrSpec?recurse",
+    "/v1/kv/constructr/MultiNodeConstructrSpec/nodes?recurse",
+    MultiNodeConsulConstructrSpec.toNodes
+  )
