@@ -30,7 +30,7 @@ import scala.concurrent.duration.{ Duration, MILLISECONDS }
 
 object DemoApp {
 
-  val conf = ConfigFactory.load()
+  val conf     = ConfigFactory.load()
   val hostname = conf.getString("demo.hostname")
   val httpPort = conf.getInt("demo.port")
 
@@ -57,8 +57,7 @@ object DemoApp {
     path("member-nodes") { // List cluster nodes
       get {
         onSuccess(
-          (cluster ? SimpleClusterListener.GetMemberNodes)
-          .mapTo[Set[Address]]
+          (cluster ? SimpleClusterListener.GetMemberNodes).mapTo[Set[Address]]
         )(addresses => complete(addresses.mkString("\n")))
       }
     }

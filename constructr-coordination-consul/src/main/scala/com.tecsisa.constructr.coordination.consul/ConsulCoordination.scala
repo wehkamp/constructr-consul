@@ -48,9 +48,9 @@ import scala.util.Try
 object ConsulCoordination {
 
   final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode)
-    extends RuntimeException(
-      s"Unexpected status code $statusCode for URI $uri"
-    )
+      extends RuntimeException(
+        s"Unexpected status code $statusCode for URI $uri"
+      )
 
   private def toSeconds(duration: Duration) = (duration.toSeconds + 1).toString
 }
@@ -109,8 +109,8 @@ final class ConsulCoordination(
         import rapture.json.jsonBackends.circe._
         def jsonToNode(json: Json) = {
           val init = nodesUri.path.toString.stripPrefix(kvUri.path.toString)
-          val key = json.Key.as[String].substring(init.length)
-          val uri = new String(getUrlDecoder.decode(key), UTF_8)
+          val key  = json.Key.as[String].substring(init.length)
+          val uri  = new String(getUrlDecoder.decode(key), UTF_8)
           AddressFromURIString(uri)
         }
         Json.parse(s).as[Set[Json]].map(jsonToNode)
@@ -165,7 +165,7 @@ final class ConsulCoordination(
     def updateLock() = {
       val lockWithPreviousSession = for {
         Some(sessionId) <- retrieveSessionForKey(uriLock)
-        result <- renewSession(sessionId) if result
+        result          <- renewSession(sessionId) if result
       } yield sessionId
       lockWithPreviousSession.map(_ => true) fallbackTo writeLock()
     }
@@ -180,16 +180,18 @@ final class ConsulCoordination(
     createIfNotExist(self, ttl)
 
   def createIfNotExist(self: Address, ttl: FiniteDuration) = {
-    val node = getUrlEncoder.encodeToString(self.toString.getBytes(UTF_8))
+    val node   = getUrlEncoder.encodeToString(self.toString.getBytes(UTF_8))
     val keyUri = nodesUri.withPath(nodesUri.path / node)
     val addSelfWithPreviousSession = for {
       Some(sessionId) <- retrieveSessionForKey(keyUri)
-      result <- renewSession(sessionId) if result
-    } yield sessionId // it will fail if there's no session or the renewal went wrong
+      result          <- renewSession(sessionId) if result
+    } yield
+      sessionId // it will fail if there's no session or the renewal went wrong
     val addSelftWithNewSession = for {
       sessionId <- createSession(ttl)
-      result <- putKeyWithSession(keyUri, sessionId) if result
-    } yield sessionId // it will fail if it couldn't acquire the key with the new session
+      result    <- putKeyWithSession(keyUri, sessionId) if result
+    } yield
+      sessionId // it will fail if it couldn't acquire the key with the new session
     addSelfWithPreviousSession.fallbackTo(addSelftWithNewSession).map { res =>
       stateSession = Some(res)
       Done
@@ -219,9 +221,9 @@ final class ConsulCoordination(
   }
 
   private def putKeyWithSession(
-    keyUri: Uri,
-    sessionId: SessionId,
-    content: RequestEntity = HttpEntity.Empty
+      keyUri: Uri,
+      sessionId: SessionId,
+      content: RequestEntity = HttpEntity.Empty
   ) = {
     val uri = keyUri.withQuery(Uri.Query("acquire" -> sessionId))
     send(Put(uri, content)).flatMap {
