@@ -16,12 +16,18 @@ object Common extends AutoPlugin {
     organization := "com.tecsisa",
     organizationName := "Tecnología, Sistemas y Aplicaciones S.L.",
     organizationHomepage := Some(url("http://www.tecsisa.com/")),
-    scmInfo := Some(ScmInfo(url("https://github.com/Tecsisa/constructr-consul"), "git@github.com:Tecsisa/constructr-consul.git")),
-    developers += Developer("contributors", "Contributors", "", url("https://github.com/Tecsisa/constructr-consul/graphs/contributors")),
+    scmInfo := Some(
+      ScmInfo(
+        url("https://github.com/Tecsisa/constructr-consul"),
+        "git@github.com:Tecsisa/constructr-consul.git")),
+    developers += Developer(
+      "contributors",
+      "Contributors",
+      "",
+      url("https://github.com/Tecsisa/constructr-consul/graphs/contributors")),
     licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0")),
     homepage := Some(url("https://github.com/Tecsisa/constructr-consul")),
     pomIncludeRepository := (_ => false),
-
     scalaVersion := crossScalaVersions.value.head,
     crossScalaVersions := Version.ScalaVersions,
     crossVersion := CrossVersion.binary,
@@ -39,13 +45,13 @@ object Common extends AutoPlugin {
     javacOptions ++= Seq(
       "-Xlint:unchecked"
     ),
-
-    ivyScala := ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)), // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
+    ivyScala := ivyScala.value
+      .map(_.copy(overrideScalaVersion = sbtPlugin.value)), // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
 
     // Git settings
     GitPlugin.autoImport.git.useGitDescribe := true,
-
     // Header settings
-    HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016, 2017", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L."))
+    HeaderPlugin.autoImport.headers := Map(
+      "scala" -> Apache2_0("2016, 2017", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L."))
   )
 }

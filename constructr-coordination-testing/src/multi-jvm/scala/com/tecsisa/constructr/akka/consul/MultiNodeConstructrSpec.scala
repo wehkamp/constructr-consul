@@ -16,7 +16,7 @@
 
 package com.tecsisa.constructr.akka.consul
 
-import akka.actor.ActorDSL.{ Act, actor }
+import akka.actor.ActorDSL.{ actor, Act }
 import akka.actor.Address
 import akka.cluster.{ Cluster, ClusterEvent }
 import akka.http.scaladsl.Http
@@ -45,8 +45,7 @@ object ConstructrMultiNodeConfig {
   }
 }
 
-class ConstructrMultiNodeConfig(coordinationPort: Int)
-    extends MultiNodeConfig {
+class ConstructrMultiNodeConfig(coordinationPort: Int) extends MultiNodeConfig {
   import ConstructrMultiNodeConfig._
 
   commonConfig(ConfigFactory.load())
@@ -66,10 +65,10 @@ class ConstructrMultiNodeConfig(coordinationPort: Int)
 }
 
 abstract class MultiNodeConstructrSpec(
-  coordinationPort: Int,
-  delete: String,
-  get: String,
-  toNodes: String => Set[Address]
+    coordinationPort: Int,
+    delete: String,
+    get: String,
+    toNodes: String => Set[Address]
 ) extends MultiNodeSpec(new ConstructrMultiNodeConfig(coordinationPort))
     with FreeSpecLike
     with Matchers

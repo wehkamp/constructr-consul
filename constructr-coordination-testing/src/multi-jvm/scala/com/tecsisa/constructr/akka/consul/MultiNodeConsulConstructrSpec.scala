@@ -21,16 +21,11 @@ import io.circe.Json
 import io.circe.parser.parse
 import java.util.Base64._
 
-class MultiNodeConsulConstructrSpecMultiJvmNode1
-  extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode2
-  extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode3
-  extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode4
-  extends MultiNodeConsulConstructrSpec
-class MultiNodeConsulConstructrSpecMultiJvmNode5
-  extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode1 extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode2 extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode3 extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode4 extends MultiNodeConsulConstructrSpec
+class MultiNodeConsulConstructrSpecMultiJvmNode5 extends MultiNodeConsulConstructrSpec
 
 object MultiNodeConsulConstructrSpec {
   def toNodes(s: String): Set[Address] = {
@@ -52,9 +47,9 @@ object MultiNodeConsulConstructrSpec {
 }
 
 abstract class MultiNodeConsulConstructrSpec
-  extends MultiNodeConstructrSpec(
-    8501,
-    "/v1/kv/constructr/MultiNodeConstructrSpec?recurse",
-    "/v1/kv/constructr/MultiNodeConstructrSpec/nodes?recurse",
-    MultiNodeConsulConstructrSpec.toNodes
-  )
+    extends MultiNodeConstructrSpec(
+      8501,
+      "/v1/kv/constructr/MultiNodeConstructrSpec?recurse",
+      "/v1/kv/constructr/MultiNodeConstructrSpec/nodes?recurse",
+      MultiNodeConsulConstructrSpec.toNodes
+    )
