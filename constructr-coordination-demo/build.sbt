@@ -6,3 +6,5 @@ libraryDependencies ++= Vector(
 )
 
 initialCommands := """|import com.tecsisa.constructr.coordination.demo._""".stripMargin
+
+publishArtifact := false
