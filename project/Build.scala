@@ -37,7 +37,7 @@ object Build extends AutoPlugin {
         </developer>
       </developers>,
     scalaVersion := Version.Scala,
-    crossScalaVersions := Vector(scalaVersion.value),
+    crossScalaVersions := Vector(scalaVersion.value, "2.11.8"),
     scalacOptions ++= Vector(
       "-unchecked",
       "-deprecation",
@@ -60,6 +60,7 @@ object Build extends AutoPlugin {
 
     // scalafmt settings
     formatSbtFiles := false,
-    scalafmtConfig := Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf")
+    scalafmtConfig := Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf"),
+    ivyScala := ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)) // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
   )
 }

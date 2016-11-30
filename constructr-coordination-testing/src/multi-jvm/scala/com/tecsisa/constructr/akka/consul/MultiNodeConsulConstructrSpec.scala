@@ -16,9 +16,10 @@
 
 package com.tecsisa.constructr.akka.consul
 
-import java.util.Base64._
-
 import akka.actor.{ Address, AddressFromURIString }
+import io.circe.Json
+import io.circe.parser.parse
+import java.util.Base64._
 
 class MultiNodeConsulConstructrSpecMultiJvmNode1
   extends MultiNodeConsulConstructrSpec
@@ -33,15 +34,20 @@ class MultiNodeConsulConstructrSpecMultiJvmNode5
 
 object MultiNodeConsulConstructrSpec {
   def toNodes(s: String): Set[Address] = {
-    import rapture.json._
-    import rapture.json.jsonBackends.circe._
     def jsonToNode(json: Json) = {
-      val a = json.Key
-        .as[String]
-        .stripPrefix("constructr/MultiNodeConstructrSpec/nodes/")
+      val a =
+        json.cursor
+          .get[String]("Key")
+          .fold(throw _, identity)
+          .stripPrefix("constructr/MultiNodeConstructrSpec/nodes/")
       AddressFromURIString(new String(getUrlDecoder.decode(a), "UTF-8"))
     }
-    Json.parse(s).as[Set[Json]].map(jsonToNode)
+    import cats.syntax.either._ // for Scala 2.11
+    parse(s)
+      .fold(throw _, identity)
+      .as[Set[Json]]
+      .getOrElse(Set.empty)
+      .map(jsonToNode)
   }
 }
 

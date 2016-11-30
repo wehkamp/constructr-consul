@@ -2,8 +2,14 @@ sudo: required
 
 language: scala
 
+scala:
+  - 2.12.0
+  - 2.11.8
+
 jdk:
 - oraclejdk8
+
+sbt_args: -Dakka.test.timefactor=3.0
 
 services:
 - docker
@@ -11,5 +17,3 @@ services:
 before_install:
 - docker pull consul
 - docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0
-
-script: sbt -Dakka.test.timefactor=3.0 +test

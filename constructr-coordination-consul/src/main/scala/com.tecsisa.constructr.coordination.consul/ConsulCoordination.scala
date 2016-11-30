@@ -20,7 +20,6 @@ package consul
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Base64
 import java.util.Base64.{ getUrlDecoder, getUrlEncoder }
-
 import akka.Done
 import akka.actor.{ ActorSystem, Address, AddressFromURIString }
 import akka.http.scaladsl.Http
@@ -39,8 +38,9 @@ import akka.http.scaladsl.model.{
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
+import io.circe.Json
+import io.circe.parser.parse
 import de.heikoseeberger.constructr.coordination.Coordination
-
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.util.Try
@@ -105,15 +105,17 @@ final class ConsulCoordination(
   override def getNodes() = {
     def unmarshalNodes(entity: ResponseEntity): Future[Set[Address]] = {
       def toNodes(s: String) = {
-        import rapture.json._
-        import rapture.json.jsonBackends.circe._
         def jsonToNode(json: Json) = {
           val init = nodesUri.path.toString.stripPrefix(kvUri.path.toString)
-          val key  = json.Key.as[String].substring(init.length)
-          val uri  = new String(getUrlDecoder.decode(key), UTF_8)
+          val key =
+            json.cursor
+              .get[String]("Key")
+              .fold(throw _, identity)
+              .substring(init.length)
+          val uri = new String(getUrlDecoder.decode(key), UTF_8)
           AddressFromURIString(uri)
         }
-        Json.parse(s).as[Set[Json]].map(jsonToNode)
+        parseJson[Address](s, jsonToNode)
       }
       Unmarshal(entity).to[String].map(toNodes)
     }
@@ -132,13 +134,12 @@ final class ConsulCoordination(
     def readLock() = {
       def unmarshallLockHolder(entity: ResponseEntity) = {
         def toLockHolder(s: String) = {
-          import rapture.json._
-          import rapture.json.jsonBackends.circe._
           def jsonToNode(json: Json) = {
-            val value = json.Value.as[String]
+            val value =
+              json.cursor.get[String]("Value").fold(throw _, identity)
             new String(Base64.getUrlDecoder.decode(value), UTF_8)
           }
-          Json.parse(s).as[Set[Json]].map(jsonToNode).head
+          parseJson[String](s, jsonToNode).head
         }
         Unmarshal(entity).to[String].map(toLockHolder)
       }
@@ -237,10 +238,10 @@ final class ConsulCoordination(
   private def retrieveSessionForKey(keyUri: Uri) = {
     def unmarshalSessionKey(entity: ResponseEntity) = {
       def toSession(s: String) = {
-        import rapture.json._
-        import rapture.json.jsonBackends.circe._
-        def jsonToNode(json: Json) = json.Session.as[String]
-        Json.parse(s).as[Set[Json]].map(jsonToNode).head
+        def jsonToNode(json: Json) = {
+          json.cursor.get[String]("Session").fold(throw _, identity)
+        }
+        parseJson[String](s, jsonToNode).head
       }
       Unmarshal(entity).to[String].map(toSession)
     }
@@ -268,9 +269,11 @@ final class ConsulCoordination(
   private def createSession(ttl: FiniteDuration) = {
     def unmarshalSessionId(entity: ResponseEntity) = {
       def toSession(s: String) = {
-        import rapture.json._
-        import rapture.json.jsonBackends.circe._
-        Json.parse(s).ID.as[String]
+        parse(s)
+          .fold(throw _, identity)
+          .hcursor
+          .get[String]("ID")
+          .fold(throw _, identity)
       }
       Unmarshal(entity).to[String].map(toSession)
     }
@@ -291,6 +294,11 @@ final class ConsulCoordination(
         ignore(entity).map(_ =>
           throw UnexpectedStatusCode(createSessionUri, other))
     }
+  }
+
+  private def parseJson[T](s: String, f: Json => T) = {
+    import cats.syntax.either._ // for Scala 2.11
+    parse(s).fold(throw _, identity).as[Set[Json]].getOrElse(Set.empty).map(f)
   }
 
   private def send(request: HttpRequest) =
