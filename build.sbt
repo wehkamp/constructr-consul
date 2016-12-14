@@ -1,10 +1,9 @@
 lazy val constructrRoot = project
   .copy(id = "constructr-root")
   .in(file("."))
-  .enablePlugins(GitVersioning)
-  .aggregate(constructrCoordinationConsul, constructrCoordinationDemo, constructrCoordinationTesting)
-  .enablePlugins(NoPublish)
+  .enablePlugins(GitVersioning, NoPublish)
   .disablePlugins(BintrayPlugin)
+  .aggregate(constructrCoordinationConsul, constructrCoordinationDemo, constructrCoordinationTesting)
 
 lazy val constructrCoordinationConsul = project
   .copy(id = "constructr-coordination-consul")

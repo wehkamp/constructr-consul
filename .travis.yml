@@ -1,34 +1,33 @@
-sudo: required
-
 language: scala
 
+sudo: required
+
 scala:
-  - 2.12.0
+  - 2.12.1
   - 2.11.8
 
 jdk:
   - oraclejdk8
 
+sbt_args: "-Dakka.test.timefactor=3.0"
+
+services:
+  - docker
+
+before_install:
+  - docker pull consul
+  - docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0
+
 deploy:
   provider: script
+  skip_cleanup: true
   script:
-    - /bin/bash "$TRAVIS_BUILD_DIR/.travis.credentials.sh" && sbt ++$TRAVIS_SCALA_VERSION publish
+  - /bin/bash "$TRAVIS_BUILD_DIR/.travis.credentials.sh" && sbt ++$TRAVIS_SCALA_VERSION publish
   on:
     tags: true
     repo: Tecsisa/constructr-consul
 
-sbt_args: -Dakka.test.timefactor=3.0
-
-services:
-- docker
-
-before_install:
-- docker pull consul
-- docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0
-
 env:
   global:
-    # encrypt with: travis encrypt BINTRAY_USER=...
-    - secure: "bcHxIH0FDCz1uhHpsnjQ1/Cd55lJUiQivLz7xXIrfsmBbdqiqcbuBvnXRvoMqKWv4reFQiNClwwLZMtDSzDqLuQSxIApsG9pyUhzaRBOEUSK9SxUsYDSv2qjSikAjvWLHk5CgBYQ1iQhSfu9V8C2tyu7ciUFBoO5I8RiRW9VY4ARX3MTz05+pouJSetMTz/U+BlmGb5/cXrOjG5mOCxx5ucQmaxUIIiDIjoPdCjxg0cnMOMizHs54NoXvITImuEPm3QpoATdRL4vPacbL7qkSXeW76oiK30GDkCTR0N5w2tcZT00/iRR7xb8Tryb05atxPxKFbfY9Zx1n+3HIuvB9N6+pjvrJytWUgcD3rfe90LpxkFlEoGgwxq1GBS3ZKl8oJYaUWBEy3X8W8vG8j9OZ13F1Oj4XbRMwpEe6TC2rC+Kf4bAR0yj+UQfEsvT+bP8KAgWJlD0URphnlr6/4vQg1Q30n4/EerY/REJ4E9Vshw/yYWn6GtG8CMFJYUBpM8BaBQKPGvgtk2WPNx4pfUBJzaFKTH+5gUS4n5rYweWXZi9Pj8K04GHXij41FM4ewbwimIfSJBAKM1XMBMU3vAGZH6VlLd7F+EAhdlPKegeouGa9kzh6m4+w09GWLi7zxQeY4+YIj5ulLx2oRpHExwtrQTTf3s3kztdv+yMXgR6q8s="
-    # encrypt with: travis encrypt BINTRAY_PASS=...
-    - secure: "gsROLPYDwIDh5Mwa+LF0aeTPdvdPX3BSwlC3sB5vGDJxxWrYW+U7er3Ds8goAmexgwAp1HovCJtOuIEeo57XnauOPOmTpKvmWTg6TETMp/vkFJWWndQlpUs0+yc5GE3QDh6yYw3Zh+fPYLhMxyrYk3r7wv/PGPqnaqwyZ8OnB+8E7IXTsL1T5CDgyc4DUNz4BwPHxD2r7lF5zh31Fqn5/+1HW0BnW0ne3ERx+KK03vwF7soGfzcYBPDH17cv+a2kSaenOBe6sc6idcujTecEsA/kH3q+RV0RkKH2zksc3WJdfIURdhjGKL1Vit2cbQe0HIKWcOrpfHhnAtzjvnAaLzSYTFDU4ysZmGBGWDLLsM6C4mOIH8Iqfr0Tfo862MODqqKc5XFCvStaNH8dCZ+9lAOVh5Gnf5sUL6WshOkFk19mniKbeYLyl31HYLXKqLlXPi5cLFJDqs4RxDJoy+XQxqsuBHwQ5K+2P7jh7pRKpJvSNsIwATRjc3Dma60mAmtOr4+F6ZXFWIECPngYr5Vmwpw9moWaR2ArNKYH7VZqEobMgWrPOg2YImjU3rmcnjxIw75JVnlas1o4sWkLbSPGUEr55oNQ/Vj1ECIZRdWTn3zYKRlMOr2sJP7PyB912mECRe9i9m/21/gZOS81pxqL2LuxYVlZ6gmNx+G9tJAvhmM="
+  - secure: tFS8VQlKrIoF6mFiVwzrJvxo+0uxivfMus9g7/k+FVIevciuHR07QuMIxoHJgAy0SwBevjxYkIxN3+r7mw+RiMPH0Icv835R7+9nqx1yULeWp/mj4P+2I7G9oP/RvNWN9BUpt5iEHcA60/emtfw4JXnVyqiMxeV5UgRB5wRL8R/WZvG0nIaAitoWAb1iqYbNuiYuNng5ybwtrmmqPLmByLuVyPfSywNl5EJmFu+eD2Z+CrZ751aqEu1atJMCRiB5WnWZuNLOpmcRRQagvxAmCsrdujKPHBxoJI15AYDJwVLpCUUC98KRiwCOUTTW8B79XOJTAklJif8Ty0VqqiF3P+h7/+qIUgu4gJESYh78nT1NHHYvcxw/jMD0g1skLZ9yJ+KNJ5yim6HxDZgqPezbJ7c+RTnKP1+5J8J0f5ZXlkgzkQ534FhxEIR9Lwu1rE01GFhUaTf9AhY5COqnnjbxFmVsN8t6o9gxbrghVxqZuCj0UQuXgG5dtaPslw7cRcqBIhPgUKI5lupO+UE8wFPqqvPfwhffnqZjhQL0paHyUoRfppjoPA90QGGQjcWSOrXcy478lk8wVlndeF7j2psJgSXv0+Zv8GVuG8JEfqyDeMof2CW3OpLfykoNDKyj0X2UTYROJ3H3CAqpUCbnfaBZlA+0M+yUIAOKT7/USYS2cG4=
+  - secure: hGtIbOvhe851PDQ8kHp7LcwuceglLOTkMIXEUY3o5DLosMyfxRx34GM8XINmIONFSY/VmuHrg8BRk5blRo/ejC+jzJ3SH3PRPLmT6f7Kyr9SmHwBeUUQ33/SgCb1Jufmb+beWrAsBeUzilxW0ayVIoseaMe4MJt6ma4koJUzkKTe9s06hxaHoon1hMGYbYDmESbSygKCnoLcDy2lwqEhrCOQcWGvJghmFc05rwU0foomPkDmMr5wp6mU5BHo2X/jDnLhgk0Vm5BMkZWE58k8eo0GGVCprla3njp2fRUy6i1J+fyG98pHbWYItFwjHx7E/YeznkgVjeTkKR1PNNWTQ9WjgfCpkcsRAerXH7OiiGdtdmm0f3+T/zoBNC5tNDOsk38n+KgLXpFuyg/MHcuSRpzq3FocLfhNfMVTKRv102J9t2NQ5NcN9YygEfKujpuyxX9K5mErjkdNPG0DhWTFEG81dy67+mO+fiB8bRM8/GzF1qFLA2wrgE1X+v73anDrdIgvT4ftVpmWhn/rjd1/aLMwNIX47cQ2TD5t7kHdlybl4nC6QcvSVaT7SchCgpsFFbbw+DEJ4IosNA5OeC6aokp0fiRR+42izVGzzXVTeJ74EVumk2jaf5pojXwtngXB5aBXgWCeMXD60uA0tmY8Uye1qGc8/7af3hinwFAvYpY=
