@@ -8,9 +8,9 @@ import sbt.plugins.JvmPlugin
 import org.scalafmt.sbt.ScalaFmtPlugin.autoImport._
 import sbt.Keys._
 
-object Build extends AutoPlugin {
+object Common extends AutoPlugin {
 
-  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && BintrayPlugin && ScalaFmtPlugin
+  override def requires = JvmPlugin && HeaderPlugin && GitPlugin && ScalaFmtPlugin
 
   override def trigger = allRequirements
 
@@ -49,14 +49,13 @@ object Build extends AutoPlugin {
     unmanagedSourceDirectories.in(Compile) := Vector(scalaSource.in(Compile).value),
     unmanagedSourceDirectories.in(Test) := Vector(scalaSource.in(Test).value),
 
+    ivyScala := ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)), // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
+
     // Git settings
     GitPlugin.autoImport.git.useGitDescribe := true,
 
     // Header settings
     HeaderPlugin.autoImport.headers := Map("scala" -> Apache2_0("2016", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.")),
-
-    // Bintray settings
-    BintrayPlugin.autoImport.bintrayPackage := "constructr-consul",
 
     // scalafmt settings
     formatSbtFiles := false,

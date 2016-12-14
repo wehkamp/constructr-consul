@@ -18,5 +18,3 @@ inConfig(MultiJvm) {
     compileInputs.in(compile).value
   }
 }
-
-publishArtifact := false
