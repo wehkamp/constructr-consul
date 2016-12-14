@@ -36,8 +36,9 @@ object Common extends AutoPlugin {
           <url>http://www.tecsisa.com</url>
         </developer>
       </developers>,
-    scalaVersion := Version.Scala,
-    crossScalaVersions := Vector(scalaVersion.value, "2.11.8"),
+    scalaVersion := Version.ScalaVersions.head,
+    crossScalaVersions := Version.ScalaVersions,
+    crossVersion := CrossVersion.binary,
     scalacOptions ++= Vector(
       "-unchecked",
       "-deprecation",
@@ -59,7 +60,6 @@ object Common extends AutoPlugin {
 
     // scalafmt settings
     formatSbtFiles := false,
-    scalafmtConfig := Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf"),
-    ivyScala := ivyScala.value.map(_.copy(overrideScalaVersion = sbtPlugin.value)) // TODO Remove once this workaround no longer needed (https://github.com/sbt/sbt/issues/2786)!
+    scalafmtConfig := Some(baseDirectory.in(ThisBuild).value / ".scalafmt.conf")
   )
 }
