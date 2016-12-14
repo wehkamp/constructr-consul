@@ -3,6 +3,8 @@ lazy val constructrRoot = project
   .in(file("."))
   .enablePlugins(GitVersioning)
   .aggregate(constructrCoordinationConsul, constructrCoordinationDemo, constructrCoordinationTesting)
+  .enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
 
 lazy val constructrCoordinationConsul = project
   .copy(id = "constructr-coordination-consul")
@@ -12,13 +14,16 @@ lazy val constructrCoordinationConsul = project
 lazy val constructrCoordinationTesting = project
   .copy(id = "constructr-coordination-testing")
   .in(file("constructr-coordination-testing"))
+  .enablePlugins(NoPublish)
+  .disablePlugins(BintrayPlugin)
   .configs(MultiJvm)
   .dependsOn(constructrCoordinationConsul % "test->compile")
 
 lazy val constructrCoordinationDemo = project
   .copy(id = "constructr-coordination-demo")
   .in(file("constructr-coordination-demo"))
-  .enablePlugins(AutomateHeaderPlugin, AshScriptPlugin)
+  .enablePlugins(AutomateHeaderPlugin, AshScriptPlugin, NoPublish)
+  .disablePlugins(BintrayPlugin)
   .dependsOn(constructrCoordinationConsul)
   .settings(dockerSettings)
 
@@ -30,5 +35,3 @@ lazy val dockerSettings: Seq[Setting[_]] = Seq(
 )
 
 name := "constructr-root"
-
-publishArtifact := false
