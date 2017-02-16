@@ -108,7 +108,7 @@ final class ConsulCoordination(
         def jsonToNode(json: Json) = {
           val init = nodesUri.path.toString.stripPrefix(kvUri.path.toString)
           val key =
-            json.cursor
+            json.hcursor
               .get[String]("Key")
               .fold(throw _, identity)
               .substring(init.length)
@@ -136,7 +136,7 @@ final class ConsulCoordination(
         def toLockHolder(s: String) = {
           def jsonToNode(json: Json) = {
             val value =
-              json.cursor.get[String]("Value").fold(throw _, identity)
+              json.hcursor.get[String]("Value").fold(throw _, identity)
             new String(Base64.getUrlDecoder.decode(value), UTF_8)
           }
           parseJson[String](s, jsonToNode).head
@@ -239,7 +239,7 @@ final class ConsulCoordination(
     def unmarshalSessionKey(entity: ResponseEntity) = {
       def toSession(s: String) = {
         def jsonToNode(json: Json) = {
-          json.cursor.get[String]("Session").fold(throw _, identity)
+          json.hcursor.get[String]("Session").fold(throw _, identity)
         }
         parseJson[String](s, jsonToNode).head
       }
