@@ -20,12 +20,18 @@ package consul
 import java.nio.charset.StandardCharsets.UTF_8
 import java.util.Base64
 import java.util.Base64.{ getUrlDecoder, getUrlEncoder }
+
 import akka.Done
 import akka.actor.{ ActorSystem, Address, AddressFromURIString }
+import akka.event.{ Logging, LoggingAdapter }
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.{ Get, Put }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
+import akka.http.scaladsl.model.headers.{
+  ModeledCustomHeader,
+  ModeledCustomHeaderCompanion
+}
 import akka.http.scaladsl.model.{
   HttpEntity,
   HttpRequest,
@@ -41,11 +47,53 @@ import akka.stream.scaladsl.{ Sink, Source }
 import io.circe.Json
 import io.circe.parser.parse
 import de.heikoseeberger.constructr.coordination.Coordination
+
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
-import scala.util.Try
+import scala.util.{ Success, Try }
 
 object ConsulCoordination {
+
+  private final case class ConsulCoordinationSettings(
+      host: String,
+      port: Int,
+      agentName: String,
+      https: Boolean = false,
+      accessToken: Option[String] = None
+  )
+  private object ConsulCoordinationSettings {
+
+    def apply(actorSystem: ActorSystem): ConsulCoordinationSettings = {
+      val config = actorSystem.settings.config
+      val host   = config.getString("constructr.coordination.host")
+      val port   = config.getInt("constructr.coordination.port")
+      val agentName = Try(config.getString("constructr.consul.agent-name"))
+        .getOrElse("")
+      val https = Try(config.getBoolean("constructr.consul.https"))
+        .getOrElse(false)
+      val accessToken = Try(config.getString("constructr.consul.access-token")).toOption
+
+      ConsulCoordinationSettings(host, port, agentName, https, accessToken)
+    }
+
+  }
+
+  private final case class ConsulToken(value: String)
+      extends ModeledCustomHeader[ConsulToken] {
+    override def companion: ModeledCustomHeaderCompanion[ConsulToken] =
+      ConsulToken
+
+    override def renderInRequests: Boolean = true
+
+    override def renderInResponses: Boolean = false
+  }
+  private object ConsulToken
+      extends ModeledCustomHeaderCompanion[ConsulToken] {
+    override def name: String = "X-Consul-Token"
+
+    override def parse(value: String): Try[ConsulToken] =
+      Success(ConsulToken(value))
+  }
 
   final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode)
       extends RuntimeException(
@@ -70,21 +118,10 @@ final class ConsulCoordination(
 
   @volatile var stateSession: Option[SessionId] = None
 
-  private val logger = system.log
+  private implicit val logger: LoggingAdapter = Logging.getLogger(system, this)
 
-  private val host =
-    system.settings.config.getString("constructr.coordination.host")
-
-  private val port =
-    system.settings.config.getInt("constructr.coordination.port")
-
-  private val agentName =
-    Try(system.settings.config.getString("constructr.consul.agent-name"))
-      .getOrElse("")
-
-  private val https =
-    Try(system.settings.config.getBoolean("constructr.consul.https"))
-      .getOrElse(false)
+  private val settings = ConsulCoordinationSettings(system)
+  logger.debug("Initializing Consul Coordination using settings: {}", settings)
 
   private val v1Uri = Uri("/v1")
 
@@ -96,10 +133,10 @@ final class ConsulCoordination(
 
   private val nodesUri = baseUri.withPath(baseUri.path / "nodes")
 
-  private val outgoingConnection = if (https) {
-    Http(system).outgoingConnectionHttps(host, port)
+  private val outgoingConnection = if (settings.https) {
+    Http(system).outgoingConnectionHttps(settings.host, settings.port)
   } else {
-    Http(system).outgoingConnection(host, port)
+    Http(system).outgoingConnection(settings.host, settings.port)
   }
 
   override def getNodes() = {
@@ -209,13 +246,15 @@ final class ConsulCoordination(
     send(Put(uri)).flatMap {
       case HttpResponse(OK, _, entity, _) => ignore(entity).map(_ => Done)
       case HttpResponse(NotFound, _, entity, _) =>
-        ignore(entity).flatMap { _ =>
-          logger.warning(
-            "Unable to refresh, session {} not found. Creating a new one",
-            sessionId
-          )
-          createIfNotExist(self, ttl)
-        }.map(_ => Done)
+        ignore(entity)
+          .flatMap { _ =>
+            logger.warning(
+              "Unable to refresh, session {} not found. Creating a new one",
+              sessionId
+            )
+            createIfNotExist(self, ttl)
+          }
+          .map(_ => Done)
       case HttpResponse(other, _, entity, _) =>
         ignore(entity).map(_ => throw UnexpectedStatusCode(uri, other))
     }
@@ -279,20 +318,21 @@ final class ConsulCoordination(
     }
     val sessionEntity = {
       val base = s"""{"behavior": "delete", "ttl": "${toSeconds(ttl)}s""""
-      val data = if (agentName.isEmpty) {
+      val data = if (settings.agentName.isEmpty) {
         logger.warning(
           "If agent-name is not defined, this may cause problems (see Consul session internals)"
         )
         base + "}"
-      } else base + s""", "node": "$agentName"}"""
+      } else base + s""", "node": "${settings.agentName}"}"""
       HttpEntity(`application/json`, data)
     }
     val createSessionUri = sessionUri.withPath(sessionUri.path / "create")
     send(Put(createSessionUri, sessionEntity)).flatMap {
       case HttpResponse(OK, _, entity, _) => unmarshalSessionId(entity)
       case HttpResponse(other, _, entity, _) =>
-        ignore(entity).map(_ =>
-          throw UnexpectedStatusCode(createSessionUri, other))
+        ignore(entity).map(
+          _ => throw UnexpectedStatusCode(createSessionUri, other)
+        )
     }
   }
 
@@ -301,13 +341,20 @@ final class ConsulCoordination(
     parse(s).fold(throw _, identity).as[Set[Json]].getOrElse(Set.empty).map(f)
   }
 
-  private def send(request: HttpRequest) =
+  private def send(baseRequest: HttpRequest) = {
+    def request: HttpRequest =
+      settings.accessToken.map { token =>
+        val newHeaders = baseRequest.headers :+ ConsulToken(token)
+        baseRequest.copy(headers = newHeaders)
+      } getOrElse baseRequest
+
     Source
       .single(request)
       .log("constructr-coordination-consul-requests")
       .via(outgoingConnection)
       .log("constructr-coordination-consul-responses")
       .runWith(Sink.head)
+  }
 
   private def ignore(entity: ResponseEntity) =
     entity.dataBytes.runWith(Sink.ignore)
