@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
+ * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,6 @@
 package com.tecsisa.constructr.coordination
 package consul
 
-import java.nio.charset.StandardCharsets.UTF_8
-import java.util.Base64
-import java.util.Base64.{ getUrlDecoder, getUrlEncoder }
-
 import akka.Done
 import akka.actor.{ ActorSystem, Address, AddressFromURIString }
 import akka.event.{ Logging, LoggingAdapter }
@@ -28,29 +24,20 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.client.RequestBuilding.{ Get, Put }
 import akka.http.scaladsl.model.MediaTypes.`application/json`
 import akka.http.scaladsl.model.StatusCodes.{ NotFound, OK }
-import akka.http.scaladsl.model.headers.{
-  ModeledCustomHeader,
-  ModeledCustomHeaderCompanion
-}
-import akka.http.scaladsl.model.{
-  HttpEntity,
-  HttpRequest,
-  HttpResponse,
-  RequestEntity,
-  ResponseEntity,
-  StatusCode,
-  Uri
-}
+import akka.http.scaladsl.model.headers.{ ModeledCustomHeader, ModeledCustomHeaderCompanion }
+import akka.http.scaladsl.model.{ HttpEntity, HttpRequest, HttpResponse, RequestEntity, ResponseEntity, StatusCode, Uri }
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{ Sink, Source }
 import io.circe.Json
 import io.circe.parser.parse
 import de.heikoseeberger.constructr.coordination.Coordination
-
 import scala.concurrent.Future
 import scala.concurrent.duration.{ Duration, FiniteDuration }
 import scala.util.{ Success, Try }
+import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Base64
+import java.util.Base64.{ getUrlDecoder, getUrlEncoder }
 
 object ConsulCoordination {
 
@@ -61,8 +48,8 @@ object ConsulCoordination {
       https: Boolean = false,
       accessToken: Option[String] = None
   )
-  private object ConsulCoordinationSettings {
 
+  private object ConsulCoordinationSettings {
     def apply(actorSystem: ActorSystem): ConsulCoordinationSettings = {
       val config = actorSystem.settings.config
       val host   = config.getString("constructr.coordination.host")
@@ -75,30 +62,21 @@ object ConsulCoordination {
 
       ConsulCoordinationSettings(host, port, agentName, https, accessToken)
     }
-
   }
 
-  private final case class ConsulToken(value: String)
-      extends ModeledCustomHeader[ConsulToken] {
-    override def companion: ModeledCustomHeaderCompanion[ConsulToken] =
-      ConsulToken
-
-    override def renderInRequests: Boolean = true
-
-    override def renderInResponses: Boolean = false
+  private final case class ConsulToken(value: String) extends ModeledCustomHeader[ConsulToken] {
+    def companion: ModeledCustomHeaderCompanion[ConsulToken] = ConsulToken
+    def renderInRequests: Boolean                            = true
+    def renderInResponses: Boolean                           = false
   }
-  private object ConsulToken
-      extends ModeledCustomHeaderCompanion[ConsulToken] {
-    override def name: String = "X-Consul-Token"
 
-    override def parse(value: String): Try[ConsulToken] =
-      Success(ConsulToken(value))
+  private object ConsulToken extends ModeledCustomHeaderCompanion[ConsulToken] {
+    val name: String                           = "X-Consul-Token"
+    def parse(value: String): Try[ConsulToken] = Success(ConsulToken(value))
   }
 
   final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode)
-      extends RuntimeException(
-        s"Unexpected status code $statusCode for URI $uri"
-      )
+      extends RuntimeException(s"Unexpected status code $statusCode for URI $uri")
 
   private def toSeconds(duration: Duration) = (duration.toSeconds + 1).toString
 }
@@ -133,13 +111,13 @@ final class ConsulCoordination(
 
   private val nodesUri = baseUri.withPath(baseUri.path / "nodes")
 
-  private val outgoingConnection = if (settings.https) {
-    Http(system).outgoingConnectionHttps(settings.host, settings.port)
-  } else {
-    Http(system).outgoingConnection(settings.host, settings.port)
-  }
+  private val outgoingConnection =
+    if (settings.https)
+      Http(system).outgoingConnectionHttps(settings.host, settings.port)
+    else
+      Http(system).outgoingConnection(settings.host, settings.port)
 
-  override def getNodes() = {
+  def getNodes(): Future[Set[Address]] = {
     def unmarshalNodes(entity: ResponseEntity): Future[Set[Address]] = {
       def toNodes(s: String) = {
         def jsonToNode(json: Json) = {
@@ -166,7 +144,7 @@ final class ConsulCoordination(
     }
   }
 
-  override def lock(self: Address, ttl: FiniteDuration) = {
+  def lock(self: Address, ttl: FiniteDuration): Future[Boolean] = {
     val uriLock = baseUri.withPath(baseUri.path / "lock")
     def readLock() = {
       def unmarshallLockHolder(entity: ResponseEntity) = {
@@ -214,29 +192,27 @@ final class ConsulCoordination(
     }
   }
 
-  override def addSelf(self: Address, ttl: FiniteDuration) =
+  def addSelf(self: Address, ttl: FiniteDuration): Future[Done] =
     createIfNotExist(self, ttl)
 
-  def createIfNotExist(self: Address, ttl: FiniteDuration) = {
+  def createIfNotExist(self: Address, ttl: FiniteDuration): Future[Done] = {
     val node   = getUrlEncoder.encodeToString(self.toString.getBytes(UTF_8))
     val keyUri = nodesUri.withPath(nodesUri.path / node)
     val addSelfWithPreviousSession = for {
       Some(sessionId) <- retrieveSessionForKey(keyUri)
       result          <- renewSession(sessionId) if result
-    } yield
-      sessionId // it will fail if there's no session or the renewal went wrong
+    } yield sessionId // it will fail if there's no session or the renewal went wrong
     val addSelftWithNewSession = for {
       sessionId <- createSession(ttl)
       result    <- putKeyWithSession(keyUri, sessionId) if result
-    } yield
-      sessionId // it will fail if it couldn't acquire the key with the new session
+    } yield sessionId // it will fail if it couldn't acquire the key with the new session
     addSelfWithPreviousSession.fallbackTo(addSelftWithNewSession).map { res =>
       stateSession = Some(res)
       Done
     }
   }
 
-  override def refresh(self: Address, ttl: FiniteDuration) = {
+  def refresh(self: Address, ttl: FiniteDuration): Future[Done] = {
     val sessionId = stateSession.getOrElse(
       throw new IllegalStateException(
         "It wasn't possible to get a valid Consul `sessionId` for refreshing"
@@ -277,9 +253,8 @@ final class ConsulCoordination(
   private def retrieveSessionForKey(keyUri: Uri) = {
     def unmarshalSessionKey(entity: ResponseEntity) = {
       def toSession(s: String) = {
-        def jsonToNode(json: Json) = {
+        def jsonToNode(json: Json) =
           json.hcursor.get[String]("Session").fold(throw _, identity)
-        }
         parseJson[String](s, jsonToNode).head
       }
       Unmarshal(entity).to[String].map(toSession)
@@ -307,13 +282,12 @@ final class ConsulCoordination(
 
   private def createSession(ttl: FiniteDuration) = {
     def unmarshalSessionId(entity: ResponseEntity) = {
-      def toSession(s: String) = {
+      def toSession(s: String) =
         parse(s)
           .fold(throw _, identity)
           .hcursor
           .get[String]("ID")
           .fold(throw _, identity)
-      }
       Unmarshal(entity).to[String].map(toSession)
     }
     val sessionEntity = {

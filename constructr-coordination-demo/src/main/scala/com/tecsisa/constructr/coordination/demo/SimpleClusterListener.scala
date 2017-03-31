@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
+ * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,7 @@ package com.tecsisa.constructr.coordination
 package demo
 
 import akka.actor.{ Actor, ActorLogging, Address, Props }
-import akka.cluster.ClusterEvent.{
-  MemberEvent,
-  MemberJoined,
-  MemberUp,
-  MemberRemoved,
-  UnreachableMember
-}
+import akka.cluster.ClusterEvent.{ MemberEvent, MemberJoined, MemberRemoved, MemberUp, UnreachableMember }
 import akka.cluster.Cluster
 
 object SimpleClusterListener {
