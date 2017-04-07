@@ -33,6 +33,11 @@ constructr.consul.agent-name = name
 We strongly recommend configuring this property so that Consul can release every session created by the ConstructR nodes and later reconnections can work properly. More details [here](https://www.consul.io/docs/internals/sessions.html).
 Not configuring this property might lead to inconsistent state. This configuration is typically carried out by a cluster scheduler that will have the consul agent name available. Of course, manual configuration is always possible too.
 
+If you are using the [ACL System](https://www.consul.io/docs/guides/acl.html) configure the Consul token:
+```
+constructr.consul.access-token = token
+```
+
 ## Testing
 
 Requirements:

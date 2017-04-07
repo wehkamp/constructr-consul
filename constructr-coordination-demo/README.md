@@ -52,7 +52,7 @@ You can use Consul UI for checking services, nodes, reading/writing key/value da
 
     - Delete session: `curl -XPUT http://localhost:8500/v1/session/destroy/{session-id}`
 
-      If you delete a session, Constructr-Consul won't be allowed to refresh it, so that node will die.
+      If you delete a session, Constructr-Consul will create a new one.
 
 - Akka:
     - Get the member nodes: `curl 127.0.0.1:8000/member-nodes`.
@@ -71,6 +71,7 @@ constructr {
   // We need to configure the agent name under which sessions will be saved
   // This property will be typically set by a cluster scheduler service as could be Nomad or Kubernetes.
   consul.agent-name = "consul2"
+  consul.access-token = "token"
 }
 ```
 
