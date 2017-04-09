@@ -3,7 +3,10 @@ lazy val constructrRoot = project
   .in(file("."))
   .enablePlugins(GitVersioning, NoPublish)
   .disablePlugins(BintrayPlugin)
-  .aggregate(constructrCoordinationConsul, constructrCoordinationDemo, constructrCoordinationTesting)
+  .aggregate(
+    constructrCoordinationConsul,
+    constructrCoordinationDemo,
+    constructrCoordinationTesting)
 
 lazy val constructrCoordinationConsul = project
   .copy(id = "constructr-coordination-consul")
@@ -13,7 +16,9 @@ lazy val constructrCoordinationConsul = project
     libraryDependencies ++= Seq(
       Library.akkaHttp,
       Library.constructrAkka,
-      Library.circeParser
+      Library.circeParser,
+      Library.akkaTestkit % "test",
+      Library.scalaTest   % "test"
     )
   )
 
@@ -39,12 +44,13 @@ lazy val constructrCoordinationDemo = project
   .enablePlugins(AutomateHeaderPlugin, AshScriptPlugin, NoPublish)
   .disablePlugins(BintrayPlugin)
   .dependsOn(constructrCoordinationConsul)
-  .settings(dockerSettings ++ Seq(
-    libraryDependencies ++= Seq(
-      Library.akkaLog4j,
-      Library.log4jCore
-    )
-  ))
+  .settings(
+    dockerSettings ++ Seq(
+      libraryDependencies ++= Seq(
+        Library.akkaLog4j,
+        Library.log4jCore
+      )
+    ))
 
 lazy val dockerSettings: Seq[Setting[_]] = Seq(
   maintainer in Docker := "Tecsisa",
