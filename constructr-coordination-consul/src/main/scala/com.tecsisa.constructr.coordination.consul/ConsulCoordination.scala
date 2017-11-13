@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
+ * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L. <http://www.tecsisa.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ object ConsulCoordination {
     }
   }
 
-  private final case class ConsulToken(value: String) extends ModeledCustomHeader[ConsulToken] {
+  private final class ConsulToken(val value: String) extends ModeledCustomHeader[ConsulToken] {
     def companion: ModeledCustomHeaderCompanion[ConsulToken] = ConsulToken
     def renderInRequests: Boolean                            = true
     def renderInResponses: Boolean                           = false
@@ -72,7 +72,7 @@ object ConsulCoordination {
 
   private object ConsulToken extends ModeledCustomHeaderCompanion[ConsulToken] {
     val name: String                           = "X-Consul-Token"
-    def parse(value: String): Try[ConsulToken] = Success(ConsulToken(value))
+    def parse(value: String): Try[ConsulToken] = Success(new ConsulToken(value))
   }
 
   final case class UnexpectedStatusCode(uri: Uri, statusCode: StatusCode)
