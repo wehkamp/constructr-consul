@@ -3,8 +3,8 @@ language: scala
 sudo: required
 
 scala:
-  - 2.12.1
-  - 2.11.8
+  - 2.12.4
+  - 2.11.11
 
 jdk:
   - oraclejdk8
@@ -16,7 +16,7 @@ services:
 
 before_install:
   - docker pull consul
-  - docker run -d -p 8501:8500 --name constructr-consul consul:latest agent -server -bootstrap -client=0.0.0.0
+  - docker run -d -p 8501:8500 --name constructr-consul consul:1.0.0 agent -server -bootstrap -client=0.0.0.0
 
 deploy:
   provider: script

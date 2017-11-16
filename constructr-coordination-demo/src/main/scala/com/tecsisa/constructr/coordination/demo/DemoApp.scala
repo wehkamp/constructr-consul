@@ -1,5 +1,5 @@
 /*
- * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L.
+ * Copyright 2016, 2017 TECNOLOGIA, SISTEMAS Y APLICACIONES S.L. <http://www.tecsisa.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.{ Duration, MILLISECONDS }
 
 object DemoApp {
@@ -46,7 +45,7 @@ object DemoApp {
     Http().bindAndHandle(route(cluster), hostname, httpPort)
   }
 
-  private def route(cluster: ActorRef)(implicit ec: ExecutionContext) = {
+  private def route(cluster: ActorRef) = {
     import Directives._
     implicit val timeout = Timeout(
       Duration(
