@@ -55,7 +55,7 @@ object Common extends AutoPlugin {
           .ALv2("2016, 2017", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L. <http://www.tecsisa.com>")
       ),
       headerMappings := headerMappings.value ++ Map(
-        FileType.scala -> CommentStyle.CStyleBlockComment
+        FileType.scala -> CommentStyle.cStyleBlockComment
       ),
       // Scalafmt settings
       scalafmtOnCompile in ThisBuild := true,

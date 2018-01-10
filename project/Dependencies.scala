@@ -1,15 +1,15 @@
 import sbt._
 
 object Version {
-  final val Akka           = "2.5.6"
-  final val AkkaHttp       = "10.0.10"
+  final val Akka           = "2.5.8"
+  final val AkkaHttp       = "10.0.11"
   final val AkkaLog4j      = "1.5.0"
   final val ConstructrAkka = "0.18.0"
   final val Log4j          = "2.9.1"
-  final val Circe          = "0.8.0"
-  final val ScalaVersions  = Seq("2.12.4", "2.11.11")
+  final val Circe          = "0.9.0"
+  final val ScalaVersions  = Seq("2.12.4", "2.11.12")
   final val ScalaTest      = "3.0.4"
-  final val Scalafmt       = "1.3.0"
+  final val Scalafmt       = "1.4.0"
 }
 
 object Library {

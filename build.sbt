@@ -33,8 +33,8 @@ lazy val `constructr-coordination-testing` = project
     unmanagedSourceDirectories.in(MultiJvm) := Vector(scalaSource.in(MultiJvm).value),
     test.in(Test) := test.in(MultiJvm).dependsOn(test.in(Test)).value,
     libraryDependencies ++= Seq(
-      Library.akkaMultiNodeTestkit % "test",
-      Library.scalaTest            % "test"
+      Library.akkaMultiNodeTestkit % Test,
+      Library.scalaTest            % Test
     )
   )
   .dependsOn(`constructr-coordination-consul` % "test->compile")
@@ -55,7 +55,7 @@ lazy val `constructr-coordination-demo` = project
 
 lazy val dockerSettings: Seq[Setting[_]] = Seq(
   maintainer in Docker := "Tecsisa",
-  dockerBaseImage := "frolvlad/alpine-oraclejdk8",
+  dockerBaseImage := "frolvlad/alpine-oraclejdk8:slim",
   daemonUser in Docker := "root",
   version in Docker := "latest"
 )
