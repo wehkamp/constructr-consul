@@ -52,7 +52,7 @@ object Common extends AutoPlugin {
       // Header settings
       headerLicense := Some(
         HeaderLicense
-          .ALv2("2016, 2017", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L. <http://www.tecsisa.com>")
+          .ALv2("2016 - 2018", "TECNOLOGIA, SISTEMAS Y APLICACIONES S.L. <http://www.tecsisa.com>")
       ),
       headerMappings := headerMappings.value ++ Map(
         FileType.scala -> CommentStyle.cStyleBlockComment

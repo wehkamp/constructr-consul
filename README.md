@@ -41,7 +41,7 @@ constructr.consul.access-token = token
 ## Testing
 
 Requirements:
-  - consul needs to be running, e.g. via ` docker run -d -p 8501:8500 --name constructr-consul consul:1.0.2 agent -server -bootstrap -client=0.0.0.0`
+  - consul needs to be running, e.g. via ` docker run -d -p 8501:8500 --name constructr-consul consul:1.0.6 agent -server -bootstrap -client=0.0.0.0`
 
 ## Demo
 
