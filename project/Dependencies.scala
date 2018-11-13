@@ -6,7 +6,7 @@ object Version {
   final val AkkaLog4j      = "1.5.0"
   final val ConstructrAkka = "0.19.0"
   final val Log4j          = "2.9.1"
-  final val Circe          = "0.9.1"
+  final val Circe          = "0.10.1"
   final val ScalaVersions  = Seq("2.12.4", "2.11.12")
   final val ScalaTest      = "3.0.5"
   final val Scalafmt       = "1.4.0"
